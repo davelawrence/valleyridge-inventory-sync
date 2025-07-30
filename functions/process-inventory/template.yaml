@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Valley Ridge Inventory Sync - Process Inventory Lambda Function
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: valleyridge-inventory-sync
+    Description: S3 bucket name for file storage
+  
+  SupportEmail:
+    Type: String
+    Default: support@valleyridge.ca
+    Description: Support email for notifications
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 1024
+    Runtime: nodejs18.x
+    Environment:
+      Variables:
+        S3_BUCKET: !Ref S3BucketName
+        SUPPORT_EMAIL: !Ref SupportEmail
+        LOG_LEVEL: INFO
+
+Resources:
+  # Lambda Function
+  ProcessInventoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: valleyridge-process-inventory
+      CodeUri: .
+      Handler: index.handler
+      Description: Process XLS inventory files to CSV format for Matrixify
+      Tags:
+        Project: InventorySync
+        Environment: Production
+        Function: ProcessInventory
+      
+      # IAM Role
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3BucketName
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+        - CloudWatchLogsFullAccess
+        - CloudWatchFullAccess
+      
+      # Environment Variables
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+          SUPPORT_EMAIL: !Ref SupportEmail
+          LOG_LEVEL: INFO
+      
+      # Event Sources - Removed S3 trigger to avoid bucket creation
+      # S3 event will be configured manually after deployment
+
+  # Lambda Permission for S3 (using existing bucket)
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessInventoryFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${S3BucketName}'
+
+  # CloudWatch Log Group
+  ProcessInventoryLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProcessInventoryFunction}'
+      RetentionInDays: 30
+
+  # EventBridge Rule for daily processing (optional)
+  DailyProcessingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: valleyridge-daily-inventory-processing
+      Description: Daily inventory processing trigger
+      ScheduleExpression: cron(0 6 * * ? *)  # 6 AM UTC daily
+      State: DISABLED  # Enable when ready for production
+      Targets:
+        - Arn: !GetAtt ProcessInventoryFunction.Arn
+          Id: ProcessInventoryTarget
+
+  # EventBridge Permission
+  EventBridgePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessInventoryFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DailyProcessingRule.Arn
+
+Outputs:
+  ProcessInventoryFunction:
+    Description: Process Inventory Lambda Function ARN
+    Value: !GetAtt ProcessInventoryFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ProcessInventoryFunction'
+
+  InventoryBucket:
+    Description: S3 Bucket for inventory files
+    Value: !Ref S3BucketName
+    Export:
+      Name: !Sub '${AWS::StackName}-InventoryBucket'
+
+  ProcessInventoryLogGroup:
+    Description: CloudWatch Log Group for Process Inventory function
+    Value: !Ref ProcessInventoryLogGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-ProcessInventoryLogGroup' 

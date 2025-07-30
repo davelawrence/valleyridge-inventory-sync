@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: valleyridge-inventory-sync
+    Description: S3 bucket name for storing inventory files
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 512
+    Environment:
+      Variables:
+        S3_BUCKET: !Ref S3BucketName
+        SUPPORT_EMAIL: support@valleyridge.ca
+        LOG_LEVEL: INFO
+
+Resources:
+  ProcessInventoryIncrementalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: valleyridge-process-inventory-incremental
+      CodeUri: .
+      Handler: incremental-processor.handler
+      Runtime: nodejs18.x
+      Description: Processes inventory files incrementally, generating delta files with only changed records
+      Tags:
+        Project: ValleyRidgeInventorySync
+        Environment: Production
+        Component: IncrementalProcessor
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3BucketName
+        - S3CrudPolicy:
+            BucketName: !Ref S3BucketName
+        - CloudWatchLogsFullAccess
+        - CloudWatchFullAccess
+
+  # S3 Bucket for storing inventory files (if not already exists)
+  InventoryBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldProcessedFiles
+            Status: Enabled
+            ExpirationInDays: 90
+            Prefix: processed/
+          - Id: DeleteOldBaselineFiles
+            Status: Enabled
+            ExpirationInDays: 365
+            Prefix: baseline/
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Project
+          Value: ValleyRidgeInventorySync
+        - Key: Environment
+          Value: Production
+
+  # S3 Bucket Policy
+  InventoryBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref InventoryBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowLambdaAccess
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt ProcessInventoryIncrementalFunctionRole.Arn
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+            Resource: !Sub '${InventoryBucket}/*'
+          - Sid: AllowTransferFamilyAccess
+            Effect: Allow
+            Principal:
+              Service: transfer.amazonaws.com
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:ListBucket
+            Resource:
+              - !Sub '${InventoryBucket}'
+              - !Sub '${InventoryBucket}/*'
+
+  # S3 Notification Configuration for Lambda trigger
+  S3NotificationConfig:
+    Type: AWS::S3::BucketNotification
+    Properties:
+      Bucket: !Ref InventoryBucket
+      LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Filter:
+            S3Key:
+              Rules:
+                - Name: suffix
+                  Value: .xls
+          Function: !GetAtt ProcessInventoryIncrementalFunction.Arn
+        - Event: s3:ObjectCreated:*
+          Filter:
+            S3Key:
+              Rules:
+                - Name: suffix
+                  Value: .xlsx
+          Function: !GetAtt ProcessInventoryIncrementalFunction.Arn
+        - Event: s3:ObjectCreated:*
+          Filter:
+            S3Key:
+              Rules:
+                - Name: suffix
+                  Value: .XLS
+          Function: !GetAtt ProcessInventoryIncrementalFunction.Arn
+        - Event: s3:ObjectCreated:*
+          Filter:
+            S3Key:
+              Rules:
+                - Name: suffix
+                  Value: .XLSX
+          Function: !GetAtt ProcessInventoryIncrementalFunction.Arn
+
+  # Lambda Permission for S3 to invoke the function
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProcessInventoryIncrementalFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub '${InventoryBucket}'
+
+Outputs:
+  ProcessInventoryIncrementalFunction:
+    Description: "Incremental Inventory Processing Lambda Function ARN"
+    Value: !GetAtt ProcessInventoryIncrementalFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ProcessInventoryIncrementalFunction"
+
+  InventoryBucket:
+    Description: "S3 Bucket for inventory files"
+    Value: !Ref InventoryBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-InventoryBucket"
+
+  S3BucketName:
+    Description: "S3 Bucket name for inventory files"
+    Value: !Ref S3BucketName
+    Export:
+      Name: !Sub "${AWS::StackName}-S3BucketName" 
