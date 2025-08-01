@@ -24,7 +24,7 @@ Resources:
       FunctionName: valleyridge-process-inventory-incremental
       CodeUri: .
       Handler: incremental-processor.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs20.x
       Description: Processes inventory files incrementally, generating delta files with only changed records
       Tags:
         Project: ValleyRidgeInventorySync
