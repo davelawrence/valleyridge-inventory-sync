@@ -309,7 +309,18 @@ async function downloadFromS3(bucket, key, requestId) {
 function isValidFile(key) {
     const validExtensions = ['.xls', '.xlsx'];
     const extension = path.extname(key).toLowerCase();
-    return validExtensions.includes(extension);
+    
+    // Accept files with valid extensions
+    if (validExtensions.includes(extension)) {
+        return true;
+    }
+    
+    // Also accept files without extensions (they will be validated as Excel files during processing)
+    if (!extension || extension === '') {
+        return true;
+    }
+    
+    return false;
 }
 
 async function processExcelFile(fileData, requestId) {
@@ -359,11 +370,11 @@ async function processExcelFile(fileData, requestId) {
 }
 
 function validateHeaders(headers, requestId) {
-    // Normalize headers to handle case variations
-    const normalizedHeaders = headers.map(h => h.trim());
+    // Filter out empty headers and normalize
+    const normalizedHeaders = headers.filter(h => h && h.trim()).map(h => h.trim());
     
     // Check for required columns with case-insensitive matching
-    const requiredColumns = ['UPC', 'Available QTY', 'Discontinued'];
+    const requiredColumns = ['UPC', 'Available Qty', 'Discontinued'];
     const missingColumns = [];
     
     for (const requiredCol of requiredColumns) {
@@ -385,18 +396,27 @@ function validateHeaders(headers, requestId) {
 
 function processDataRow(row, headers, rowNumber, requestId) {
     try {
-        // Create object from row data with case-insensitive matching
-        const rowData = {};
-        headers.forEach((header, index) => {
-            rowData[header] = row[index] || '';
-        });
+        // Create a proper column mapping that handles missing columns
+        const columnMap = {};
+        
+        for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            if (header && header.trim()) {
+                // Map this header to the actual column index in the original data
+                columnMap[header] = i;
+            }
+        }
         
         // Helper function to get value by case-insensitive key
         const getValue = (key) => {
-            const foundKey = Object.keys(rowData).find(k => 
-                k.toLowerCase() === key.toLowerCase()
+            const foundKey = Object.keys(columnMap).find(k =>
+                k && k.toLowerCase() === key.toLowerCase()
             );
-            return foundKey ? rowData[foundKey] : '';
+            if (foundKey) {
+                const dataIndex = columnMap[foundKey];
+                return row[dataIndex] || '';
+            }
+            return '';
         };
         
         // Validate UPC
@@ -407,7 +427,7 @@ function processDataRow(row, headers, rowNumber, requestId) {
         }
         
         // Validate quantity
-        const quantity = parseInt(getValue('Available QTY')) || 0;
+        const quantity = parseInt(getValue('Available Qty')) || 0;
         if (quantity < 0) {
             console.warn(`[${requestId}] Row ${rowNumber}: Negative quantity for UPC ${upc}, setting to 0`);
         }
@@ -420,7 +440,9 @@ function processDataRow(row, headers, rowNumber, requestId) {
         return {
             'Variant Barcode': upc,
             'Variant Inventory Qty': quantity,
-            'Variant Metafield: custom.internal_discontinued [single_line_text_field]': isDiscontinued ? 'Yes' : 'No'
+            'Variant Metafield: custom.internal_discontinued [single_line_text_field]': isDiscontinued ? 'Yes' : 'No',
+            'Variant Inventory Tracker': 'shopify',
+            'Variant Inventory Policy': 'deny'
         };
         
     } catch (error) {

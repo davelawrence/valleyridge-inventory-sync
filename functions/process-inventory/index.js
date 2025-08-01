@@ -111,7 +111,18 @@ async function processS3Event(record, requestId) {
 function isValidFile(key) {
     const validExtensions = ['.xls', '.xlsx'];
     const extension = path.extname(key).toLowerCase();
-    return validExtensions.includes(extension);
+    
+    // Accept files with valid extensions
+    if (validExtensions.includes(extension)) {
+        return true;
+    }
+    
+    // Also accept files without extensions (they will be validated as Excel files during processing)
+    if (!extension || extension === '') {
+        return true;
+    }
+    
+    return false;
 }
 
 /**
@@ -199,8 +210,8 @@ async function processExcelFile(fileData, requestId) {
  * @param {string} requestId - Request ID for logging
  */
 function validateHeaders(headers, requestId) {
-    // Normalize headers to handle case variations
-    const normalizedHeaders = headers.map(h => h.trim());
+    // Filter out empty headers and normalize
+    const normalizedHeaders = headers.filter(h => h && h.trim()).map(h => h.trim());
     
     // Check for required columns with case-insensitive matching
     const requiredColumns = ['UPC', 'Available QTY', 'Discontinued'];
@@ -233,18 +244,29 @@ function validateHeaders(headers, requestId) {
  */
 function processDataRow(row, headers, rowNumber, requestId) {
     try {
-        // Create object from row data with case-insensitive matching
-        const rowData = {};
-        headers.forEach((header, index) => {
-            rowData[header] = row[index] || '';
-        });
+        // Create a proper column mapping that handles missing columns
+        const columnMap = {};
+        let dataIndex = 0;
+        
+        for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            if (header && header.trim()) {
+                // Map this header to the current data index
+                columnMap[header] = dataIndex;
+                dataIndex++;
+            }
+        }
         
         // Helper function to get value by case-insensitive key
         const getValue = (key) => {
-            const foundKey = Object.keys(rowData).find(k => 
-                k.toLowerCase() === key.toLowerCase()
+            const foundKey = Object.keys(columnMap).find(k => 
+                k && k.toLowerCase() === key.toLowerCase()
             );
-            return foundKey ? rowData[foundKey] : '';
+            if (foundKey) {
+                const dataIndex = columnMap[foundKey];
+                return row[dataIndex] || '';
+            }
+            return '';
         };
         
         // Validate UPC
