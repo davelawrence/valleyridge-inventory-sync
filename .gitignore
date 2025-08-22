@@ -1,55 +1,32 @@
-# Valley Ridge Inventory Sync - Git Ignore File
+# Data files (vendor inventory files)
+*.XLS
+*.xls
+*.XLSX
+*.xlsx
+*.csv
 
-# Dependencies
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Test outputs and results
+test-results-*/
+latest-*.csv
+original-test-file.*
 
-# AWS SAM build artifacts
-.aws-sam/
-samconfig.toml
-samconfig-*.toml
-
-# Environment variables and secrets
-.env
-.env.local
-.env.production
-.env.staging
-*.env
-
-# Credentials and sensitive files
-credentials/
-*.pem
-*.key
-*.p12
-*.pfx
-*.crt
-*.csr
-*.pem
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
+# Email attachments and temporary files
+outlook_email_attachment*
+response.json
+simple-test-event.json
 
 # IDE and editor files
 .vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-.atom/
-.brackets.json
+*.code-workspace
+
+# Node.js dependencies (if not needed in repo)
+node_modules/
+npm-debug.log*
+
+# AWS and deployment artifacts
+.aws/
+samconfig.toml
+*.template.yaml
 
 # OS generated files
 .DS_Store
@@ -60,127 +37,14 @@ Thumbs.db
 ehthumbs.db
 Thumbs.db
 
-# Test files and results
-test-*.csv
-test-*.json
-test-*.xlsx
-test-*.xls
-*-test.*
-test-results/
-coverage/
-
-# Build and deployment artifacts
-dist/
-build/
-*.zip
-*.tar.gz
-*.tgz
-deploy/
-packages/
-
 # Logs
-logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+logs/
 
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# Coverage directory used by tools like istanbul
-coverage/
-*.lcov
-
-# nyc test coverage
-.nyc_output
-
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
-.eslintcache
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env.test
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# next.js build output
-.next
-
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# AWS credentials (if accidentally committed)
-.aws/
-aws-credentials.json
-
-# Local development files
-local/
-dev/
-development/
-
-# Backup files
-*.bak
-*.backup
-*.old
-*.orig
-
-# Temporary deployment files
-deploy-temp/
-temp-deploy/
-
-# CloudFormation temporary files
-*.template.bak
-*.yaml.bak
-*.yml.bak
-
-# Lambda deployment packages
-lambda-package/
-*.zip
-
-# Test credentials (if any)
-test-credentials/
-sample-credentials/
-
-# Local configuration overrides
-config.local.json
-config.local.yaml
-config.local.yml 
+# Credentials (already gitignored)
+credentials/ 
