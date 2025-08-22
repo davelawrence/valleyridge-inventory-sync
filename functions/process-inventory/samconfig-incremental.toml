@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "valleyridge-inventory-sync-incremental"
+s3_prefix = "valleyridge-inventory-sync-incremental"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+parameter_overrides = "S3BucketName=valleyridge-inventory-sync" 
