@@ -2,7 +2,7 @@
   "LambdaFunctionConfigurations": [
     {
       "Id": "ProcessInventoryTriggerXLS",
-      "LambdaFunctionArn": "arn:aws:lambda:us-east-1:413362489612:function:valleyridge-process-inventory-incremental",
+      "LambdaFunctionArn": "arn:aws:lambda:us-east-1:413362489612:function:valleyridge-process-inventory",
       "Events": ["s3:ObjectCreated:*"],
       "Filter": {
         "Key": {
@@ -21,7 +21,7 @@
     },
     {
       "Id": "ProcessInventoryTriggerXLSX",
-      "LambdaFunctionArn": "arn:aws:lambda:us-east-1:413362489612:function:valleyridge-process-inventory-incremental",
+      "LambdaFunctionArn": "arn:aws:lambda:us-east-1:413362489612:function:valleyridge-process-inventory",
       "Events": ["s3:ObjectCreated:*"],
       "Filter": {
         "Key": {
@@ -39,4 +39,4 @@
       }
     }
   ]
-} 
+}

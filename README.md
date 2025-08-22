@@ -25,6 +25,7 @@ This system automates the process of receiving Excel inventory files from Loloi 
 - ✅ **File Extension Detection**: Works with files that have no extensions
 - ✅ **Pre-signed URLs**: Generates temporary URLs for Matrixify access
 - ✅ **SFTP Integration**: Secure file transfer for vendor uploads
+- ✅ **Vendor SFTP Delivery**: Active integration with Loloi for automated file delivery
 
 ### Advanced Features
 - 🆕 **Incremental Processing**: Generates delta files with only changed records
@@ -271,8 +272,9 @@ For support and questions:
 
 ## 📊 Status
 
-- **Full Import System**: ✅ Production Ready
-- **Incremental Import System**: ✅ Production Ready
+- **Full Import System**: ✅ Production Ready (available for rollback)
+- **Incremental Import System**: ✅ Production Ready (currently active)
+- **Vendor SFTP Integration**: ✅ Configured and Active
 - **Documentation**: ✅ Complete
 - **Testing**: ✅ Automated tests available
 - **Monitoring**: ✅ CloudWatch integration
@@ -285,6 +287,15 @@ For support and questions:
 - [ ] Multi-vendor support
 - [ ] Advanced change analytics
 - [ ] Automated baseline management
+
+## 🆕 Recent Updates
+
+### Vendor SFTP Transition (January 2025)
+- **Status**: ✅ **Active** - System now processes vendor files via SFTP
+- **Change**: S3 notifications updated to use incremental processor
+- **Benefits**: 80-95% smaller files, better change tracking, improved performance
+- **Vendor**: Loloi now delivers files directly via SFTP instead of Make automation
+- **Documentation**: See [CHANGELOG.md](CHANGELOG.md) for detailed change history
 
 ---
 
